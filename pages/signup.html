@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro | Rust Auth</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            align-items: center;
+            background-color: #2F3037;
+            color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-flow: row wrap;
+            height: 100vh;
+            justify-content: center;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+        }
+
+        .signUpPage {
+            background-color: rgba(0, 0, 0, 0.25);
+            border-radius: 12px;
+            padding: 36px 24px;
+            width: 400px;
+        }
+
+        .signUpPage > h1 {
+            font-size: 2.25em;
+            line-height: 0.25em;
+            text-align: center;
+        }
+
+        .signUpPage > span {
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.8);
+            display: block;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            margin-top: 36px;
+            padding: 1em;
+            text-align: center;
+        }
+
+        .signUpPage > span:empty {
+            margin-top: 0;
+            padding: 0;
+        }
+
+        .signUpPage > span.error {
+            background-color: #F44336;
+        }
+
+        .signUpPage > span.success {
+            background-color: #4CAF50;
+        }
+
+        .signUpPage > input {
+            border: 1px solid white;
+            border-radius: 4px;
+            outline: none;
+            padding: 1em 1.25em;
+            width: 100%;
+        }
+
+        .signUpPage > input[invalid="true"] {
+            border-color: #F44336;
+            color: #F44336;
+        }
+
+        .signUpPage > input:focus {
+            box-shadow: 0 0 10px #89B73A;
+        }
+
+        .signUpPage > input:nth-of-type(1) {
+            margin-top: 36px;
+        }
+
+        .signUpPage > input:nth-of-type(2),
+        .signUpPage > input:nth-of-type(3) {
+            margin-top: 14px;
+        }
+
+        .signUpPage > button {
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            letter-spacing: 0.02em;
+            outline: none;
+            padding: 0.75em 1em;
+            transition: .2s all ease-in-out;
+            width: 100%;
+        }
+
+        .signUpPage > button:active {
+            transform: scale3d(0.9, 0.9, 0.9);
+        }
+
+        .signUpPage > button:nth-of-type(1) {
+            background-color: #673AB7;
+            border: none;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 36px;
+        }
+
+        .signUpPage > button:nth-of-type(1):hover {
+            background-color: rgba(103, 58, 183, 0.8);
+        }
+
+        .signUpPage > button:nth-of-type(2) {
+            background-color: transparent;
+            border: 1px solid #89B73A;
+            color: #89B73A;
+            margin-top: 12px;
+        }
+
+        .signUpPage > button:nth-of-type(2):hover {
+            background-color: rgba(137, 183, 58, 0.15);
+        }
+    </style>
+</head>
+<body>
+    <div class="signUpPage">
+        <h1>Registro</h1>
+        <span id="message"></span>
+        <input id="username" placeholder="Nombre de usuario" type="text" />
+        <input id="password" placeholder="Contraseña" type="password" />
+        <button id="signup" type="button">Finalizar</button>
+        <button id="toLogIn" type="button">¿Ya tienes una cuenta? Ingresa en ella</button>
+    </div>
+
+    <script type="text/javascript">
+        window.onload = function() {
+            const sessionToken = localStorage.getItem('sessionToken');
+            if (!sessionToken) return;
+
+            fetch('/auth/me', {
+                headers: {
+                    Authorization: `Bearer ${sessionToken}`,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then((response) => {
+                if (response.status != 200) {
+                    localStorage.removeItem('sessionToken');
+                    return;
+                }
+
+                document.location.href = '/home';
+            });
+        };
+
+        const signupBtn = document.getElementById('signup');
+        signupBtn.onclick = async function() {
+            const messageBox = document.getElementById('message');
+            messageBox.innerHTML = '';
+
+            const usernameInput = document.getElementById('username');
+            usernameInput.setAttribute('invalid', 'false');
+            usernameInput.title = '';
+
+            const passwordInput = document.getElementById('password');
+            passwordInput.setAttribute('invalid', 'false');
+            passwordInput.title = '';
+
+            const response = await fetch('/auth/signUp', {
+                body: JSON.stringify({
+                    username: usernameInput.value,
+                    password: passwordInput.value,
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                method: 'POST',
+            });
+
+            const data = await response.json();
+            if (response.status === 200) {
+                localStorage.setItem('sessionToken', data.access_token);
+                document.location.href = '/home';
+                return;
+            }
+
+            messageBox.classList.add('error');
+            messageBox.innerHTML = data.message;
+
+            if (data.validation_details) {
+                const fields = {
+                    username: usernameInput,
+                    password: passwordInput,
+                };
+
+                for (const [field, errorMessage] of Object.entries(data.validation_details)) {
+                    fields[field].setAttribute('invalid', 'true');
+                    fields[field].title = errorMessage;
+                }
+            }
+        }
+
+        const toLogInBtn = document.getElementById('toLogIn');
+        toLogInBtn.onclick = function() {
+            document.location.href = '/';
+        };
+    </script>
+</body>
+</html>

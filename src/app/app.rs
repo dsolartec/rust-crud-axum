@@ -26,6 +26,7 @@ impl App {
         Router::new()
             .route("/logIn", post(handlers::auth_handlers::log_in))
             .route("/signUp", post(handlers::auth_handlers::sign_up))
+            .route("/me", get(handlers::auth_handlers::me))
     }
 
     fn setup_permissions_routes(&self) -> Router<ControllersState> {
@@ -63,6 +64,13 @@ impl App {
             .nest("/username/:username", user_by_username)
     }
 
+    fn setup_web_routes(&self) -> Router<ControllersState> {
+        Router::new()
+            .route("/", get(handlers::web_handlers::login_page))
+            .route("/signup", get(handlers::web_handlers::signup_page))
+            .route("/home", get(handlers::web_handlers::home_page))
+    }
+
     fn setup_routes(&self) -> Router {
         let auth_controller = AuthController::new(&self.jwt_encryption, &self.users_service, &self.permissions_service);
         let users_controller = UsersController::new(&self.users_service);
@@ -74,6 +82,7 @@ impl App {
             .nest("/auth", self.setup_auth_routes())
             .nest("/permissions", self.setup_permissions_routes())
             .nest("/users", self.setup_users_routes())
+            .nest("/", self.setup_web_routes())
             .with_state(state)
     }
 

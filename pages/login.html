@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicio de Sesión | Rust Auth</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            align-items: center;
+            background-color: #2F3037;
+            color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-flow: row wrap;
+            height: 100vh;
+            justify-content: center;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+        }
+
+        .loginPage {
+            background-color: rgba(0, 0, 0, 0.25);
+            border-radius: 12px;
+            padding: 36px 24px;
+            width: 400px;
+        }
+
+        .loginPage > h1 {
+            font-size: 2.25em;
+            line-height: 0.25em;
+            text-align: center;
+        }
+
+        .loginPage > span {
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.8);
+            display: block;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            margin-top: 36px;
+            padding: 1em;
+            text-align: center;
+        }
+
+        .loginPage > span:empty {
+            margin-top: 0;
+            padding: 0;
+        }
+
+        .loginPage > span.error {
+            background-color: #F44336;
+        }
+
+        .loginPage > span.success {
+            background-color: #4CAF50;
+        }
+
+        .loginPage > input {
+            border: 1px solid white;
+            border-radius: 4px;
+            outline: none;
+            padding: 1em 1.25em;
+            width: 100%;
+        }
+
+        .loginPage > input:focus {
+            box-shadow: 0 0 10px #89B73A;
+        }
+
+        .loginPage > input:nth-of-type(1) {
+            margin-top: 36px;
+        }
+
+        .loginPage > input:nth-of-type(2) {
+            margin-top: 14px;
+        }
+
+        .loginPage > button {
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            letter-spacing: 0.02em;
+            outline: none;
+            padding: 0.75em 1em;
+            transition: .2s all ease-in-out;
+            width: 100%;
+        }
+
+        .loginPage > button:active {
+            transform: scale3d(0.9, 0.9, 0.9);
+        }
+
+        .loginPage > button:nth-of-type(1) {
+            background-color: #673AB7;
+            border: none;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 36px;
+        }
+
+        .loginPage > button:nth-of-type(1):hover {
+            background-color: rgba(103, 58, 183, 0.8);
+        }
+
+        .loginPage > button:nth-of-type(2) {
+            background-color: transparent;
+            border: 1px solid #89B73A;
+            color: #89B73A;
+            margin-top: 12px;
+        }
+
+        .loginPage > button:nth-of-type(2):hover {
+            background-color: rgba(137, 183, 58, 0.15);
+        }
+    </style>
+</head>
+<body>
+    <div class="loginPage">
+        <h1>Inicia sesión</h1>
+        <span id="message"></span>
+        <input id="username" placeholder="Nombre de usuario" type="text" />
+        <input id="password" placeholder="**********" type="password" />
+        <button id="login" type="button">Ingresar</button>
+        <button id="toSignUp" type="button">¿Aún no tienes cuenta? Regístrate</button>
+    </div>
+
+    <script type="text/javascript">
+        window.onload = function() {
+            const sessionToken = localStorage.getItem('sessionToken');
+            if (!sessionToken) return;
+
+            fetch('/auth/me', {
+                headers: {
+                    Authorization: `Bearer ${sessionToken}`,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then((response) => {
+                if (response.status != 200) {
+                    localStorage.removeItem('sessionToken');
+                    return;
+                }
+
+                document.location.href = '/home';
+            });
+        };
+
+        const loginBtn = document.getElementById('login');
+        loginBtn.onclick = async function() {
+            const messageBox = document.getElementById('message');
+            messageBox.innerHTML = '';
+
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+
+            const response = await fetch('/auth/logIn', {
+                body: JSON.stringify({
+                    username: usernameInput.value,
+                    password: passwordInput.value,
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                method: 'POST',
+            });
+
+            const data = await response.json();
+            if (response.status === 200) {
+                localStorage.setItem('sessionToken', data.access_token);
+                document.location.href = '/home';
+                return;
+            }
+
+            messageBox.classList.add('error');
+            messageBox.innerHTML = data.message;
+        }
+        
+        const toSignUpBtn = document.getElementById('toSignUp');
+        toSignUpBtn.onclick = function() {
+            document.location.href = '/signup';
+        };
+    </script>
+</body>
+</html>
