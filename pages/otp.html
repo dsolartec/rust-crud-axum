@@ -318,7 +318,10 @@
     <script type="text/javascript">
         window.onload = function() {
             const sessionToken = localStorage.getItem('sessionToken');
-            if (!sessionToken) return;
+            if (!sessionToken) {
+                document.location.href = '/';
+                return;
+            }
 
             fetch('/auth/me', {
                 headers: {
