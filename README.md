@@ -20,6 +20,33 @@ Para instalar Rust solamente debes visitar la página de [rustup (Instalador ofi
 
 Este proyecto está bajo la [licencia MIT](./LICENSE).
 
+## Vista previa (UI)
+
+<details>
+    <summary>Inicio de sesión</summary>
+    <img src="./docs/login_page.png" />
+</details>
+
+<details>
+    <summary>Registro</summary>
+    <img src="./docs/signup_page.png" />
+</details>
+
+<details>
+    <summary>Activar 2AF (Escanear QR)</summary>
+    <img src="./docs/otp_qr_page.png" />
+</details>
+
+<details>
+    <summary>Verificación código 2AF</summary>
+    <img src="./docs/otp_verify_page.png" />
+</details>
+
+<details>
+    <summary>Página de inicio</summary>
+    <img src="./docs/home_page.png" />
+</details>
+
 ## Endpoints
 
 ### Autorizaciones
@@ -70,6 +97,102 @@ Este proyecto está bajo la [licencia MIT](./LICENSE).
     - `409` - Cuando el nombre de usuario ya está en uso.
     - `500` - Cuando haya ocurrido un error interno.
     - `201` - Cuando se haya registrado exitosamente.
+
+<br />
+
+-   **GET** `/auth/me` - Obtener mi información
+
+    **Headers**
+    ```json
+    {
+        "Authorization": "Bearer {access_token}"
+    }
+    ```
+
+    **Respuesta exitosa**
+    ```json
+    {
+        "id": 1,
+        "username": "admin",
+        "otp_enabled": false
+    }
+    ```
+
+    **Códigos de respuesta**
+    - `401` - Cuando el usuario autenticado no posee ninguno de los permisos requeridos.
+    - `500` - Cuando haya ocurrido un error interno.
+    - `200` - Cuando haya podido obtener la información.
+
+### 2AF (TOTP)
+
+-   **GET** `/auth/otp/qrCode` - Obtener el código QR
+
+    **Query**
+    - `auth` - Token de autorización
+
+    **Headers**
+    ```json
+    {
+        "Authorization": "Bearer {access_token}"
+    }
+    ```
+
+    > **Nota:** El token de autorización se puede mandar por header o por los parámetros de la URL, esto con el fin de que se pueda usar en el atributo `src` de una imagen en HTML. **Ejemplo:** `/auth/otp/qrCode?auth=ey...`
+
+    **Respuesta exitosa**
+
+    Una imagen PNG.
+
+    **Códigos de respuesta**
+    - `401` - Cuando el usuario autenticado ya tiene activo el 2AF (escaneó el código previamente).
+    - `500` - Cuando haya ocurrido un error interno.
+    - `200` - Cuando haya podido obtener la información.
+
+<br />
+
+-   **PUT** `/auth/otp/enable/:otp_code` - Activar la autenticación en dos factores
+
+    **Headers**
+    ```json
+    {
+        "Authorization": "Bearer {access_token}"
+    }
+    ```
+
+    **Respuesta exitosa**
+    ```json
+    {
+        "access_token": "JWT"
+    }
+    ```
+
+    **Códigos de respuesta**
+    - `401` - Cuando el usuario autenticado ya tiene activo el 2AF (escaneó el código previamente).
+    - `500` - Cuando haya ocurrido un error interno.
+    - `200` - Cuando haya podido obtener todos los usuarios.
+
+<br />
+
+-   **POST** `/auth/otp/verify/:otp_code` - Verificar el código de la autenticación en dos factores
+
+    **Headers**
+    ```json
+    {
+        "Authorization": "Bearer {access_token}"
+    }
+    ```
+
+    **Respuesta exitosa**
+    ```json
+    {
+        "access_token": "JWT"
+    }
+    ```
+
+    **Códigos de respuesta**
+    - `401` - Cuando el usuario autenticado no tiene activo el 2AF o ya ingresó un código previamente.
+    - `500` - Cuando haya ocurrido un error interno.
+    - `200` - Cuando haya podido obtener todos los usuarios.
 
 ### Usuarios
 
