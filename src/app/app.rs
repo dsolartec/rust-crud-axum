@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::{Router, Server, routing::{post, get, IntoMakeService}};
+use axum::{Router, Server, routing::{post, get, IntoMakeService, put}};
 use hyper::server::conn::AddrIncoming;
 use tokio::sync::RwLock;
 
@@ -23,10 +23,16 @@ pub struct App {
 
 impl App {
     fn setup_auth_routes(&self) -> Router<ControllersState> {
+        let otp = Router::new()
+            .route("/qrCode", get(handlers::auth_handlers::get_otp_qr_code))
+            .route("/enable/:otp_code", put(handlers::auth_handlers::enable_otp))
+            .route("/verify/:otp_code", post(handlers::auth_handlers::verify_otp_code));
+
         Router::new()
             .route("/logIn", post(handlers::auth_handlers::log_in))
             .route("/signUp", post(handlers::auth_handlers::sign_up))
             .route("/me", get(handlers::auth_handlers::me))
+            .nest("/otp", otp)
     }
 
     fn setup_permissions_routes(&self) -> Router<ControllersState> {
@@ -69,10 +75,11 @@ impl App {
             .route("/", get(handlers::web_handlers::login_page))
             .route("/signup", get(handlers::web_handlers::signup_page))
             .route("/home", get(handlers::web_handlers::home_page))
+            .route("/otp", get(handlers::web_handlers::otp_page))
     }
 
     fn setup_routes(&self) -> Router {
-        let auth_controller = AuthController::new(&self.jwt_encryption, &self.users_service, &self.permissions_service);
+        let auth_controller = AuthController::new(&self.logger, &self.jwt_encryption, &self.users_service, &self.permissions_service);
         let users_controller = UsersController::new(&self.users_service);
         let permissions_controller = PermissionsController::new(&self.users_service, &self.permissions_service);
 

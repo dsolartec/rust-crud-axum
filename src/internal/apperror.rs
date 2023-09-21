@@ -13,6 +13,10 @@ pub enum AppError {
     #[error(transparent)]
     ValidationError(#[from] validator::ValidationErrors),
 
+    // Auth
+    #[error("2AF code is not valid")]
+    InvalidOTP,
+
     #[error("Unauthorized")]
     UnAuthorized,
 
@@ -50,15 +54,15 @@ pub enum AppError {
     CannotRevokeUserPermission,
 }
 
-impl From<axum::extract::rejection::JsonRejection> for AppError {
-    fn from(_value: axum::extract::rejection::JsonRejection) -> Self {
+impl From<totp_rs::TotpUrlError> for AppError {
+    fn from(_value: totp_rs::TotpUrlError) -> Self {
         AppError::InternalServerError
     }
 }
 
-impl From<axum::extract::rejection::TypedHeaderRejection> for AppError {
-    fn from(_value: axum::extract::rejection::TypedHeaderRejection) -> Self {
-        AppError::UnAuthorized
+impl From<axum::extract::rejection::JsonRejection> for AppError {
+    fn from(_value: axum::extract::rejection::JsonRejection) -> Self {
+        AppError::InternalServerError
     }
 }
 
@@ -93,6 +97,8 @@ impl IntoResponse for AppError {
         }
 
         let (status_code, code, message) = match self {
+            // Auth
+            AppError::InvalidOTP => (StatusCode::BAD_REQUEST, "invalid_2af_code", "El código de autenticación en dos factores no es válido"),
             AppError::UnAuthorized => (StatusCode::UNAUTHORIZED, "unauthorized_user", "No tienes permitido consumir esta url"),
 
             // Users

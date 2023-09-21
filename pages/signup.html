@@ -4,9 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro | Rust Auth</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
         * {
             box-sizing: border-box;
+            font-family: 'Roboto';
         }
 
         html, body {
@@ -39,7 +43,7 @@
             border-radius: 8px;
             color: rgba(255, 255, 255, 0.8);
             display: block;
-            font-weight: 600;
+            font-weight: 500;
             letter-spacing: 0.02em;
             margin-top: 36px;
             padding: 1em;
@@ -155,16 +159,17 @@
             });
         };
 
+        const messageBox = document.getElementById('message');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
         const signupBtn = document.getElementById('signup');
-        signupBtn.onclick = async function() {
-            const messageBox = document.getElementById('message');
+
+        async function submit() {
             messageBox.innerHTML = '';
 
-            const usernameInput = document.getElementById('username');
             usernameInput.setAttribute('invalid', 'false');
             usernameInput.title = '';
 
-            const passwordInput = document.getElementById('password');
             passwordInput.setAttribute('invalid', 'false');
             passwordInput.title = '';
 
@@ -182,7 +187,7 @@
             const data = await response.json();
             if (response.status === 200) {
                 localStorage.setItem('sessionToken', data.access_token);
-                document.location.href = '/home';
+                document.location.href = '/otp';
                 return;
             }
 
@@ -201,6 +206,16 @@
                 }
             }
         }
+
+        usernameInput.onkeypress = function(e) {
+            if (e.key == "Enter") submit();
+        }
+
+        passwordInput.onkeypress = function(e) {
+            if (e.key == "Enter") submit();
+        }
+
+        signupBtn.onclick = submit;
 
         const toLogInBtn = document.getElementById('toLogIn');
         toLogInBtn.onclick = function() {

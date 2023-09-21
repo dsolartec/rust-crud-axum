@@ -1,3 +1,5 @@
+use totp_rs::{Secret, TOTP};
+
 use crate::internal::{platform::logger::Logger, apperror::AppError};
 
 use super::models::User;
@@ -17,11 +19,31 @@ impl UsersService {
                     id: 1,
                     username: String::from("admin"),
                     password: String::from("admin"),
+                    otp_enabled: false,
+                    otp: TOTP::new(
+                        totp_rs::Algorithm::SHA1,
+                        6,
+                        1,
+                        30,
+                        Secret::generate_secret().to_bytes().unwrap(),
+                        Some("Rust Auth".to_string()),
+                        "admin".to_string(),
+                    ).unwrap(),
                 },
                 User {
                     id: 2,
                     username: String::from("dsolarte"),
                     password: String::from("1234"),
+                    otp_enabled: false,
+                    otp: TOTP::new(
+                        totp_rs::Algorithm::SHA1,
+                        6,
+                        1,
+                        30,
+                        Secret::generate_secret().to_bytes().unwrap(),
+                        Some("Rust Auth".to_string()),
+                        "dsolarte".to_string(),
+                    ).unwrap(),
                 },
             ],
         }
@@ -43,6 +65,16 @@ impl UsersService {
             id: last_id + 1,
             username: username.to_string(),
             password: password.to_string(),
+            otp_enabled: false,
+            otp: TOTP::new(
+                totp_rs::Algorithm::SHA1,
+                6,
+                1,
+                30,
+                Secret::generate_secret().to_bytes().unwrap(),
+                Some("Rust Auth".to_string()),
+                username.to_string(),
+            )?,
         };
 
         self.users.push(user.clone());
@@ -72,5 +104,16 @@ impl UsersService {
         self.users.remove(index.unwrap());
 
         Ok(())
+    }
+
+    pub fn change_otp_status_for_user(&mut self, user_id: i64) -> Result<&User, AppError> {
+        for user in self.users.iter_mut() {
+            if user.id == user_id {
+                user.otp_enabled = !user.otp_enabled;
+                return Ok(user);
+            }
+        }
+
+        Err(AppError::UserNotFound)
     }
 }

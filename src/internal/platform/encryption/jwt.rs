@@ -1,9 +1,14 @@
-use axum::{extract::FromRequestParts, async_trait, http::request::Parts, TypedHeader, headers::{Authorization, authorization::Bearer}, RequestPartsExt};
+use axum::{extract::{FromRequestParts, rejection::TypedHeaderRejectionReason, Query}, async_trait, http::request::Parts, TypedHeader, headers::{Authorization, authorization::Bearer}, RequestPartsExt};
 use chrono::{Utc, Duration};
 use jsonwebtoken::{Validation, DecodingKey, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 
 use crate::internal::apperror::AppError;
+
+#[derive(Deserialize)]
+pub struct AuthQuery {
+    pub auth: String,
+}
 
 #[derive(Deserialize, Serialize)]
 pub struct AccessTokenPayload {
@@ -11,10 +16,18 @@ pub struct AccessTokenPayload {
     exp: usize,
     pub username: String,
     pub permissions: Vec<String>,
+    pub otp_enabled: bool,
+    pub otp_passed: bool,
 }
 
 impl AccessTokenPayload {
-    pub fn new(user_id: i64, username: &str, permissions: Vec<String>) -> AccessTokenPayload {
+    pub fn new(
+        user_id: i64,
+        username: &str,
+        permissions: Vec<String>,
+        otp_enabled: bool,
+        otp_passed: bool,
+    ) -> AccessTokenPayload {
         let exp = (Utc::now() + Duration::hours(1)).timestamp() as usize;
 
         AccessTokenPayload {
@@ -22,6 +35,8 @@ impl AccessTokenPayload {
             exp,
             username: username.to_string(),
             permissions,
+            otp_enabled,
+            otp_passed,
         }
     }
 
@@ -54,10 +69,27 @@ where
     type Rejection = AppError;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let TypedHeader(Authorization(bearer)) = parts.extract::<TypedHeader<Authorization<Bearer>>>().await?;
+        let bearer_token: String;
+
+        let token_header = parts.extract::<TypedHeader<Authorization<Bearer>>>().await;
+        if let Err(err) = token_header {
+            match err.reason() {
+                TypedHeaderRejectionReason::Missing => {
+                    let token_query = parts.extract::<Query<AuthQuery>>().await;
+                    if token_query.is_err() {
+                        return Err(AppError::UnAuthorized);
+                    }
+
+                    bearer_token = token_query.unwrap().0.auth;
+                },
+                _ => return Err(AppError::UnAuthorized),
+            }
+        } else {
+            bearer_token = token_header.unwrap().0.0.token().to_string();
+        }
 
         let token_data: jsonwebtoken::TokenData<AccessTokenPayload> = jsonwebtoken::decode::<AccessTokenPayload>(
-            bearer.token(),
+            &bearer_token,
             &DecodingKey::from_secret("Abecedario".as_bytes()),
             &Validation::default(),
         )?;

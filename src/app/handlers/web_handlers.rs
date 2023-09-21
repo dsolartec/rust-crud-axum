@@ -8,6 +8,10 @@ pub async fn signup_page() -> Html<&'static str> {
     Html(std::include_str!("../../../pages/signup.html"))
 }
 
+pub async fn otp_page() -> Html<&'static str> {
+    Html(std::include_str!("../../../pages/otp.html"))
+}
+
 pub async fn home_page() -> Html<&'static str> {
     Html(std::include_str!("../../../pages/home.html"))
 }

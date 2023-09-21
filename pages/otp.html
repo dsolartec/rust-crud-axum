@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rust Auth</title>
+    <title>2AF | Rust Auth</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;500;700&display=swap" rel="stylesheet">
@@ -26,35 +26,157 @@
             width: 100%;
         }
 
-        span {
-            margin-right: 24px;
+        .otpPage {
+            align-items: center;
+            display: flex;
+            flex-flow: column wrap;
+            justify-content: center;
         }
 
-        button {
-            background-color: #673AB7;
-            border: none;
-            border-radius: 12px;
+        .otpPage > h1 {
+            font-size: 2.25em;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .otpPage > span {
+            border-radius: 8px;
             color: rgba(255, 255, 255, 0.8);
-            cursor: pointer;
-            display: none;
+            display: block;
             font-weight: 500;
             letter-spacing: 0.02em;
-            outline: none;
-            padding: 0.75em 1em;
+            margin: 24px 0;
+            padding: 1em;
+            text-align: center;
         }
 
-        button:hover {
-            background-color: rgba(103, 58, 183, 0.8);
+        .otpPage > span:empty {
+            margin: 0;
+            padding: 0;
         }
 
-        button:active {
-            transform: scale3d(0.9, 0.9, 0.9);
+        .otpPage > span.error {
+            background-color: #F44336;
+        }
+
+        .otpPage__qr {
+            align-items: center;
+            display: flex;
+            flex-flow: column wrap;
+            justify-content: center;
+        }
+
+        .otpPage__qr > span {
+            display: block;
+            margin-top: 24px;
+        }
+
+        .otpPage__qr > img {
+            border-radius: 8px;
+            display: block;
+            margin-top: 24px;
+            width: 250px;
+        }
+
+        .otpPage__inputs {
+            margin-top: 48px;
+        }
+
+        .otpPage__inputs input {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: none;
+            line-height: 50px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: black;
+            margin: 0 2px;
+            border-radius: 18px;
+            border: 3px solid #673AB7;
+        }
+
+        ::-webkit-input-placeholder {
+            /* Edge */
+            font-weight: 800;
+            color: #9c9a9a;
+        }
+
+        :-ms-input-placeholder {
+            /* Internet Explorer */
+            font-weight: 800;
+            color: #9c9a9a;
+        }
+
+        ::placeholder {
+            font-weight: 900;
+            color: #9c9a9a;
         }
     </style>
 </head>
 <body>
-    <span id="welcomeMessage"></span>
-    <button id="logout">Cerrar sesión</button>
+    <div class="otpPage">
+        <h1>Verificación en dos factores</h1>
+        <span id="message"></span>
+        <div class="otpPage__qr" id="qr">
+            <span>Ingresa el código generado en tu aplicación</span>
+        </div>
+        <div class="otpPage__inputs" id="inputs">
+            <input
+                data-next="digit-2"
+                id="digit-1"
+                maxlength="1"
+                name="digit-1"
+                placeholder="-"
+                type="text"
+            />
+            <input
+                data-next="digit-3"
+                data-previous="digit-1"
+                id="digit-2"
+                maxlength="1"
+                name="digit-2"
+                placeholder="-"
+                type="text"
+            />
+            <input
+                data-next="digit-4"
+                data-previous="digit-2"
+                id="digit-3"
+                maxlength="1"
+                name="digit-3"
+                placeholder="-"
+                type="text"
+            />
+            <input
+                data-next="digit-5"
+                data-previous="digit-3"
+                id="digit-4"
+                maxlength="1"
+                name="digit-4"
+                placeholder="-"
+                type="text"
+            />
+            <input
+                data-next="digit-6"
+                data-previous="digit-4"
+                id="digit-5"
+                maxlength="1"
+                name="digit-5"
+                placeholder="-"
+                type="text"
+            />
+            <input
+                data-previous="digit-5"
+                id="digit-6"
+                maxlength="1"
+                name="digit-6"
+                placeholder="-"
+                type="text"
+            />
+        </div>
+    </div>
 
     <script type="text/javascript">
         (function (factory) {
@@ -194,14 +316,9 @@
         //# sourceMappingURL=jwt-decode.js.map
     </script>
     <script type="text/javascript">
-        const logoutBtn = document.getElementById('logout');
-
         window.onload = function() {
             const sessionToken = localStorage.getItem('sessionToken');
-            if (!sessionToken) {
-                document.location.href = '/';
-                return;
-            }
+            if (!sessionToken) return;
 
             fetch('/auth/me', {
                 headers: {
@@ -213,27 +330,64 @@
                 if (response.status == 200) return response.json();
 
                 localStorage.removeItem('sessionToken');
-                document.location.href = '/';   
+                document.location.href = '/';
             })
             .then((data) => {
                 const jwtData = jwt_decode(sessionToken);
-                if (!jwtData.otp_passed) {
-                    document.location.href = '/otp';
+                if (jwtData.otp_passed) {
+                    document.location.href = '/home';
                     return;
                 }
 
-                document.title = `${data.username} | Rust Auth`;
+                if (!jwtData.otp_enabled) {
+                    const qrBox = document.getElementById('qr');
+                    qrBox.innerHTML = `
+                        <span>Escanea el código de abajo e ingresa el código generado</span>
+                        <img alt="QR Code" src="/auth/otp/qrCode?auth=${sessionToken}" />
+                    `;
+                }
 
-                const welcomeMessage = document.getElementById('welcomeMessage');
-                welcomeMessage.innerHTML = `¡Bienvenido/a, ${data.username}!`;
-            
-                logoutBtn.style.display = 'block';
+                const messageBox = document.getElementById('message');
+                const otpInputs = document.getElementById('inputs').children;
+
+                for (const digitInput of otpInputs) {
+                    digitInput.onkeyup = async function(e) {
+                        messageBox.innerHTML = '';
+
+                        if (e.keyCode === 8 || e.keyCode === 37) {
+                            const prevDigit = document.getElementById(e.target.getAttribute('data-previous'));
+                            if (prevDigit) prevDigit.focus();
+                        } else if ((e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 65 && e.keyCode <= 90) || (e.keyCode >= 96 && e.keyCode <= 105) || e.keyCode === 39) {
+                            const nextDigit = document.getElementById(e.target.getAttribute('data-next'));
+                            if (nextDigit) nextDigit.focus();
+                            else {
+                                let otpCode = '';
+                                for (const digitInput of otpInputs) {
+                                    otpCode += digitInput.value;
+                                }
+
+                                const response = await fetch(`/auth/otp/${jwtData.otp_enabled ? 'verify' : 'enable'}/${otpCode}`, {
+                                    headers: {
+                                        Authorization: `Bearer ${sessionToken}`,
+                                        'Content-Type': 'application/json',
+                                    },
+                                    method: jwtData.otp_enabled ? 'POST' : 'PUT',
+                                });
+
+                                const data = await response.json();
+                                if (response.status === 200) {
+                                    localStorage.setItem('sessionToken', data.access_token);
+                                    document.location.href = '/home';
+                                    return;
+                                }
+
+                                messageBox.classList.add('error');
+                                messageBox.innerHTML = data.message;
+                            }
+                        }
+                    }
+                }
             });
-        };
-
-        logoutBtn.onclick = function() {
-            localStorage.removeItem('sessionToken');
-            document.location.href = '/';
         };
     </script>
 </body>
